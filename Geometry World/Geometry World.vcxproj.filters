@@ -23,7 +23,16 @@
     <ClInclude Include="PersonajePrincipal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Enemigo.h">
+    <ClInclude Include="EnemigoPentagono.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EnemigoTriangulo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BalaPersonaje.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BalaEnemigo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,8 +1,15 @@
+//####################                 GEOMETRY WORLD                  ####################
+//####################                 Desarrollador:                  ####################
+//####################                 Dylan Rodríguez Barboza         ####################
+
 #include <stdio.h>
 #include <iostream>
 
 #include "PersonajePrincipal.h"
-#include "Enemigo.h"
+#include "EnemigoPentagono.h"
+#include "EnemigoTriangulo.h"
+#include "BalaPersonaje.h"
+#include "BalaEnemigo.h"
 
 #include <allegro5/allegro.h>
 
@@ -20,28 +27,59 @@ using namespace std;
 #define largoPantalla 480
 #define FPS 30.0
 #define FPS1 10.0
+#define FPS2 15.0
+#define dannoBalaEnemigo 3.5
+#define dannoEnemigoPentagono 6.5
+#define dannoEnemigoTriangulo 8.5
 
 enum Direccion {UP, DOWN, RIGHT, LEFT, SPACE};
+enum Teclas {W, E, R, S, D, F};
 
 bool teclas[4] = {false, false, false, false};
 
+EnemigoPentagono *enemigosPentagono[2];
+EnemigoTriangulo *enemigosTriangulo[2];
+
 PersonajePrincipal *personaje;
-Enemigo *enemigoJ;
+
+ALLEGRO_DISPLAY *pantalla = NULL;
 
 ALLEGRO_COLOR transparente = al_map_rgb(0, 0, 0);
 
+ALLEGRO_BITMAP *principalBuffer;
+ALLEGRO_BITMAP *enemigoPentagonoBuffer;
+
 ALLEGRO_BITMAP *principalIzquierda;
 ALLEGRO_BITMAP *principalDerecha;
-ALLEGRO_BITMAP *enemigo;
+ALLEGRO_BITMAP *enemigoPentagono;
+ALLEGRO_BITMAP *enemigoTriangulo;
 ALLEGRO_BITMAP *ultimo;
 
-
+//iniciarElementosJuego: función que se encarga de inicializar todos los elementos pertenecientes al videojuego
+//Entradas: ninguna
+//Salidas: ninguna
+//Restricciones: ninguna
 void iniciarElementosJuego(){
 	personaje = new PersonajePrincipal(10, 10, 3, 100.0);
-	enemigoJ = new Enemigo(60, 60);
-
+	enemigosPentagono[0] = new EnemigoPentagono(400, 400, 1, 0, dannoEnemigoPentagono);
+	enemigosPentagono[1] = new EnemigoPentagono(500, 500, 2, 0, dannoEnemigoPentagono);
+	enemigosTriangulo[0] = new EnemigoTriangulo(100, 60, RIGHT, 1, dannoEnemigoTriangulo);
+	enemigosTriangulo[1] = new EnemigoTriangulo(400, 60, LEFT, 2, dannoEnemigoTriangulo);
 }
 
+
+//limpiarPantalla: función que limpia el elemento display creado al inicio del programa
+//Entradas: ninguna
+//Salidas: ninguna
+//Restricciones: ninguna
+void limpiarPantalla(){
+	al_clear_to_color(transparente);
+}
+
+//dibujarPrincipal: función encargada de dibujar en pantalla al personaje principal
+//Entradas: eje x, eje y, dirección del personaje
+//Salidas: ninguna
+//Restricciones: se toma en cuenta si es dirección izquierda o derecha, por lo que se tomará la imagen correspondiente
 void dibujarPrincipal(int x, int y, int direccion){
 	
 		switch (direccion){
@@ -65,14 +103,141 @@ void dibujarPrincipal(int x, int y, int direccion){
 	
 }
 
-void dibujarEnemigo(int x, int y){
-	al_draw_bitmap(enemigo, x, y, NULL);
-	al_flip_display();
+//dibujarEnemigoPentagono: función encargada de dibujar en pantalla al enemigo pentágono
+//Entradas: ninguna
+//Salidas: ninguna
+//Restricciones: ninguna
+void dibujarEnemigoPentagono(){
+	for (int i = 0; i < 2; i++){
+		al_set_target_bitmap(enemigoPentagonoBuffer);
+		al_draw_bitmap_region(enemigoPentagono, enemigosPentagono[i]->sprite * 30, 0, 30, 30, 0, 0, NULL);
+		al_set_target_bitmap(al_get_backbuffer(pantalla));
+		al_draw_bitmap(enemigoPentagonoBuffer, enemigosPentagono[i]->x, enemigosPentagono[i]->y, NULL);
+		al_flip_display();
+	}
 }
 
+//dibujarEnemigoTriangulo: función encargada de dibujar en pantalla al enemigo triángulo
+//Entradas: ninguna
+//Salidas: ninguna
+//Restricciones: ninguna
+void dibujarEnemigoTriangulo(){
+	for (int i = 0; i < 2; i++){
+		al_set_target_bitmap(al_get_backbuffer(pantalla));
+		al_draw_bitmap(enemigoTriangulo, enemigosTriangulo[i]->x, enemigosTriangulo[i]->y, NULL);
+		al_flip_display();
+	}
+}
+
+
+//cambiarSpriteEnemigoPentagono: función encargada de sumar en uno la variable split del enemigo pentágono
+//Entradas: ninguna
+//Salidas: ninguna
+//Restricciones: si el sumarSprite es 0, se suma en uno el sprite del enemigo pentágono
+void cambiarSpriteEnemigoPentagono(){
+	for (int i = 0; i < 2; i++){
+		if (enemigosPentagono[i]->sprite == 4) enemigosPentagono[i]->sprite = 0;
+		else{
+			if (enemigosPentagono[i]->sumarSprite == 0){
+				enemigosPentagono[i]->sprite += 1;
+				enemigosPentagono[i]->sumarSprite = 2;
+			}
+			else enemigosPentagono[i]->sumarSprite -= 1;
+		}
+	}
+}
+
+
+//moverEnemigoPentagono: función encargada de sumar los ejer x,y del enemigo pentágono
+//Entradas: movimiento (lo que se le suma a los ejes), tiempo (si es segundo o tercer timer)
+//Salidas: ninguna
+//Restricciones: se evalúan las posiciones el personaje principal para que el enemigo lo siga
+void moverEnemigoPentagono(int movimiento, int tiempo){
+	for (int i = 0; i < 2; i++){
+		cout << enemigosPentagono[i]->tiempo << tiempo << endl;
+		if (enemigosPentagono[i]->tiempo == tiempo){
+			
+			if (personaje->y > enemigosPentagono[i]->y){
+				if (enemigosPentagono[i]->y < 450)
+					enemigosPentagono[i]->y += movimiento;
+			}
+
+			if (personaje->y < enemigosPentagono[i]->y){
+				if (enemigosPentagono[i]->y > 0)
+					enemigosPentagono[i]->y -= movimiento;
+			}
+
+			if (personaje->x > enemigosPentagono[i]->x){
+				if (enemigosPentagono[i]->x < 600)
+					enemigosPentagono[i]->x += movimiento;
+			}
+
+			if (personaje->x < enemigosPentagono[i]->x){
+				if (enemigosPentagono[i]->x > 0)
+					enemigosPentagono[i]->x -= movimiento;
+			}
+
+		}
+	}
+}
+
+//moverEnemigoTriangulo: función encargada de sumar los ejer x,y del enemigo triángulo
+//Entradas: movimiento (lo que se le suma a los ejes), tiempo (si es segundo o tercer timer)
+//Salidas: ninguna
+//Restricciones: se evalúa si el enemigo está al punto mínimo o máximo del eje x, para así cambiar el rumbo
+void moverEnemigoTriangulo(int movimiento, int tiempo){
+	for (int i = 0; i < 2; i++){
+		
+		if (enemigosTriangulo[i]->tiempo == tiempo){
+			
+			if (enemigosTriangulo[i]->direccion == LEFT){
+				if (enemigosTriangulo[i]->x == 0) enemigosTriangulo[i]->direccion = RIGHT;
+				else enemigosTriangulo[i]->x -= movimiento;
+			}
+
+			if (enemigosTriangulo[i]->direccion == RIGHT){
+				if (enemigosTriangulo[i]->x == 450) enemigosTriangulo[i]->direccion = LEFT;
+				else enemigosTriangulo[i]->x += movimiento;
+			}
+
+
+
+		}
+	}
+}
+
+//moverPersonaje: función encargada de sumar los ejer x,y del personaje principal
+//Entradas: movimiento (lo que se le suma a los ejes)
+//Salidas: ninguna
+//Restricciones: ninguna
+void moverPersonaje(int movimiento){
+	if (teclas[DOWN]){
+		if (personaje->y < 450) personaje->y += movimiento;
+	}
+	if (teclas[UP]){
+		if (personaje->y > 0) personaje->y -= movimiento;
+	}
+	if (teclas[RIGHT]){
+		if (personaje->x < 600) personaje->x += movimiento;
+	}
+	if (teclas[LEFT]){
+		if (personaje->x > 0) personaje->x -= movimiento;
+	}
+}
+
+//colisionPentagono: función encargada de evaluar si existe alguna colisión entre algún enemigo pentágono y el personaje principal
+//Entradas: ninguna
+//Salidas: true: si existe una colisión, false: si no existe colisión
+//Restricciones: ninguna
+bool colisionPentagono(){
+	for (int i = 0; i < 2; i++){
+		if (personaje->x == enemigosPentagono[i]->x && personaje->y == enemigosPentagono[i]->y) return true;
+	}
+	return false;
+}
 int main(int argc, char **argv){
 
-	ALLEGRO_DISPLAY *pantalla = NULL;
+	
 
 	if (!al_init()) {
 		fprintf(stderr, "failed to initialize allegro!\n");
@@ -106,11 +271,18 @@ int main(int argc, char **argv){
 	al_init_image_addon();
 	//*******************
 
+	//Se crean los contenedores de las imágenes que se utilizarán en el juego
+	//*******************
+	principalBuffer = al_create_bitmap(30, 30);
+	enemigoPentagonoBuffer = al_create_bitmap(30, 30);
+	//*******************
+
 	//Se cargan las imágenes que se van a utilizar en el juego
 	//*******************
 	principalIzquierda = al_load_bitmap("Imagenes/PrincipalIzquierda.png");
 	principalDerecha = al_load_bitmap("Imagenes/PrincipalDerecha.png");
-	enemigo = al_load_bitmap("Imagenes/Enemigo.png");
+	enemigoPentagono = al_load_bitmap("Imagenes/EnemigoPentagono.png");
+	enemigoTriangulo = al_load_bitmap("Imagenes/EnemigoTriangulo.png");
 	//*******************
 
 	//Líneas para obtener las funcionalidades del teclado
@@ -132,6 +304,7 @@ int main(int argc, char **argv){
 
 	ALLEGRO_TIMER *primerTimer = al_create_timer(1.0 / FPS);
 	ALLEGRO_TIMER *segundoTimer = al_create_timer(1.0 / FPS1);
+	ALLEGRO_TIMER *tercerTimer = al_create_timer(1.0 / FPS2);
 
 	ALLEGRO_EVENT_QUEUE *colaEventos = al_create_event_queue();
 
@@ -139,11 +312,13 @@ int main(int argc, char **argv){
 	//*******************
 	al_register_event_source(colaEventos, al_get_timer_event_source(primerTimer));
 	al_register_event_source(colaEventos, al_get_timer_event_source(segundoTimer));
+	al_register_event_source(colaEventos, al_get_timer_event_source(tercerTimer));
 	al_register_event_source(colaEventos, al_get_keyboard_event_source());
 	//*******************
 
 	al_start_timer(primerTimer);
 	al_start_timer(segundoTimer);
+	al_start_timer(tercerTimer);
 
 	iniciarElementosJuego();
 	dibujarPrincipal(personaje->x, personaje->y, direccion);
@@ -223,58 +398,33 @@ int main(int argc, char **argv){
 
 		if (eventos.type == ALLEGRO_EVENT_TIMER){
 			if (eventos.timer.source == primerTimer){
-				if (teclas[DOWN]){
-					if (personaje->y < 450) personaje->y += movimiento;
-				}
-				if (teclas[UP]){
-					if (personaje->y > 0) personaje->y -= movimiento;
-				}
-				if (teclas[RIGHT]){
-					if (personaje->x < 600) personaje->x += movimiento;
-				}
-				if (teclas[LEFT]){
-					if (personaje->x > 0) personaje->x -= movimiento;
-				}
+				moverPersonaje(movimiento);
 			}
 
 			if (eventos.timer.source == segundoTimer){
-				if (personaje->y > enemigoJ->y){
-					if (enemigoJ->y < 450)
-						enemigoJ->y += movimiento;
-				}
+				moverEnemigoPentagono(movimiento, 1);
+				moverEnemigoTriangulo(movimiento, 1);
+			}
 
-				if (personaje->y < enemigoJ->y){
-					if (enemigoJ->y > 0)
-						enemigoJ->y -= movimiento;
-				}
-
-				if (personaje->x > enemigoJ->x){
-					if (enemigoJ->x < 600)
-						enemigoJ->x += movimiento;
-				}
-
-				if (personaje->x < enemigoJ->x){
-					if (enemigoJ->x > 0)
-						enemigoJ->x -= movimiento;
-				}
+			if (eventos.timer.source == tercerTimer){
+				moverEnemigoPentagono(movimiento, 2);
+				moverEnemigoTriangulo(movimiento, 2);
 			}
 			
 		}
 			
 		dibujarPrincipal(personaje->x, personaje->y, direccion);
-		dibujarEnemigo(enemigoJ->x, enemigoJ->y);
-		al_clear_to_color(transparente);
-			
+		dibujarEnemigoPentagono();
+		dibujarEnemigoTriangulo();
+		cambiarSpriteEnemigoPentagono();
+		limpiarPantalla();
+		if (colisionPentagono()) hecho = true;
 
 
 		
 
 	}
 
-	
-
-	
-	//al_rest(10.0);
 
 	//Se liberan los elementos de allegro que se utilizaron
 	
@@ -286,5 +436,9 @@ int main(int argc, char **argv){
     
 	al_destroy_bitmap(principalIzquierda);
 	al_destroy_bitmap(principalDerecha);
+	al_destroy_bitmap(enemigoPentagono);
+	al_destroy_bitmap(enemigoTriangulo);
+	al_destroy_bitmap(enemigoPentagonoBuffer);
+	
 	return 0;
 }

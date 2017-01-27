@@ -73,7 +73,10 @@
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Enemigo.h" />
+    <ClInclude Include="BalaEnemigo.h" />
+    <ClInclude Include="BalaPersonaje.h" />
+    <ClInclude Include="EnemigoPentagono.h" />
+    <ClInclude Include="EnemigoTriangulo.h" />
     <ClInclude Include="PersonajePrincipal.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
