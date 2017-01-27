@@ -31,14 +31,21 @@ using namespace std;
 #define dannoBalaEnemigo 3.5
 #define dannoEnemigoPentagono 6.5
 #define dannoEnemigoTriangulo 8.5
+#define numeroEnemigosPentagono 2
+#define numeroEnemigosTriangulo 2
+#define numeroBalasPersonaje 10
+#define numeroBalasEnemigo 10
 
-enum Direccion {UP, DOWN, RIGHT, LEFT, SPACE};
-enum Teclas {W, E, R, S, D, F};
+enum Direccion {UP, DOWN, RIGHT, LEFT};
+enum Teclas {S, E, D, F};
 
-bool teclas[4] = {false, false, false, false};
+bool teclasDireccion[4] = {false, false, false, false};
+bool teclasDisparo[4] = { false, false, false, false };
 
-EnemigoPentagono *enemigosPentagono[2];
-EnemigoTriangulo *enemigosTriangulo[2];
+EnemigoPentagono *enemigosPentagono[numeroEnemigosPentagono];
+EnemigoTriangulo *enemigosTriangulo[numeroEnemigosTriangulo];
+BalaPersonaje *balasPersonaje[numeroBalasPersonaje];
+BalaEnemigo *balasEnemigo[numeroBalasEnemigo];
 
 PersonajePrincipal *personaje;
 
@@ -53,6 +60,9 @@ ALLEGRO_BITMAP *principalIzquierda;
 ALLEGRO_BITMAP *principalDerecha;
 ALLEGRO_BITMAP *enemigoPentagono;
 ALLEGRO_BITMAP *enemigoTriangulo;
+ALLEGRO_BITMAP *balaPersonajeH;
+ALLEGRO_BITMAP *balaPersonajeV;
+ALLEGRO_BITMAP *balaEnemigo;
 ALLEGRO_BITMAP *ultimo;
 
 //iniciarElementosJuego: función que se encarga de inicializar todos los elementos pertenecientes al videojuego
@@ -65,6 +75,14 @@ void iniciarElementosJuego(){
 	enemigosPentagono[1] = new EnemigoPentagono(500, 500, 2, 0, dannoEnemigoPentagono);
 	enemigosTriangulo[0] = new EnemigoTriangulo(100, 60, RIGHT, 1, dannoEnemigoTriangulo);
 	enemigosTriangulo[1] = new EnemigoTriangulo(400, 60, LEFT, 2, dannoEnemigoTriangulo);
+
+	for (int i = 0; i < numeroBalasPersonaje; i++){
+		balasPersonaje[i] = new BalaPersonaje(0, 0, 0);
+	}
+
+	for (int i = 0; i < numeroBalasEnemigo; i++){
+		balasEnemigo[i] = new BalaEnemigo(0, 0, dannoBalaEnemigo);
+	}
 }
 
 
@@ -154,7 +172,6 @@ void cambiarSpriteEnemigoPentagono(){
 //Restricciones: se evalúan las posiciones el personaje principal para que el enemigo lo siga
 void moverEnemigoPentagono(int movimiento, int tiempo){
 	for (int i = 0; i < 2; i++){
-		cout << enemigosPentagono[i]->tiempo << tiempo << endl;
 		if (enemigosPentagono[i]->tiempo == tiempo){
 			
 			if (personaje->y > enemigosPentagono[i]->y){
@@ -196,7 +213,7 @@ void moverEnemigoTriangulo(int movimiento, int tiempo){
 			}
 
 			if (enemigosTriangulo[i]->direccion == RIGHT){
-				if (enemigosTriangulo[i]->x == 450) enemigosTriangulo[i]->direccion = LEFT;
+				if (enemigosTriangulo[i]->x == 600) enemigosTriangulo[i]->direccion = LEFT;
 				else enemigosTriangulo[i]->x += movimiento;
 			}
 
@@ -211,17 +228,74 @@ void moverEnemigoTriangulo(int movimiento, int tiempo){
 //Salidas: ninguna
 //Restricciones: ninguna
 void moverPersonaje(int movimiento){
-	if (teclas[DOWN]){
+	if (teclasDireccion[DOWN]){
 		if (personaje->y < 450) personaje->y += movimiento;
 	}
-	if (teclas[UP]){
+	if (teclasDireccion[UP]){
 		if (personaje->y > 0) personaje->y -= movimiento;
 	}
-	if (teclas[RIGHT]){
+	if (teclasDireccion[RIGHT]){
 		if (personaje->x < 600) personaje->x += movimiento;
 	}
-	if (teclas[LEFT]){
+	if (teclasDireccion[LEFT]){
 		if (personaje->x > 0) personaje->x -= movimiento;
+	}
+}
+
+bool sinSalud(){
+	if (personaje->salud <= 0.0) return true;
+
+	else return false;
+}
+
+bool sinVidas(){
+	if (personaje->vidas == 0) return true;
+	else return false;
+}
+
+void restarSalud(float danno){
+	personaje->salud -= danno;
+}
+
+
+void restarVidas(){
+	personaje->vidas -= 1;
+}
+
+void restaurarSalud(){
+	personaje->salud = 100.0;
+}
+
+void dispararPersonaje(int direccion){
+	if (direccion == DOWN || direccion == UP || direccion == RIGHT || direccion == LEFT){
+		
+		for (int i = 0; i < numeroBalasPersonaje; i++){
+			
+			if (!balasPersonaje[i]->activado){
+				balasPersonaje[i]->x = personaje->x;
+				balasPersonaje[i]->y = personaje->y;
+				balasPersonaje[i]->orientacion = direccion;
+				break;
+			
+			}
+		}
+	}
+}
+
+void moverBalaPersonaje(int movimiento){
+	for (int i = 0; i < numeroBalasPersonaje; i++){
+		if (balasPersonaje[i]->activado){
+
+			if (balasPersonaje[i]->orientacion == DOWN) balasPersonaje[i]->y += movimiento;
+
+			if (balasPersonaje[i]->orientacion == UP) balasPersonaje[i]->y -= movimiento;
+
+			if (balasPersonaje[i]->orientacion == RIGHT) balasPersonaje[i]->x += movimiento;
+				
+			if (balasPersonaje[i]->orientacion == LEFT) balasPersonaje[i]->x -= movimiento;
+		
+		}
+
 	}
 }
 
@@ -229,12 +303,22 @@ void moverPersonaje(int movimiento){
 //Entradas: ninguna
 //Salidas: true: si existe una colisión, false: si no existe colisión
 //Restricciones: ninguna
-bool colisionPentagono(){
+void colisionPentagono(){
 	for (int i = 0; i < 2; i++){
-		if (personaje->x == enemigosPentagono[i]->x && personaje->y == enemigosPentagono[i]->y) return true;
+		if (personaje->x == enemigosPentagono[i]->x && personaje->y == enemigosPentagono[i]->y) restarSalud(enemigosPentagono[i]->danno);
 	}
-	return false;
+	
 }
+
+void colisionTriangulo(){
+	for (int i = 0; i < 2; i++){
+		if (personaje->x == enemigosTriangulo[i]->x && personaje->y == enemigosTriangulo[i]->y) restarSalud(enemigosTriangulo[i]->danno);
+	}
+	
+}
+
+
+
 int main(int argc, char **argv){
 
 	
@@ -283,6 +367,9 @@ int main(int argc, char **argv){
 	principalDerecha = al_load_bitmap("Imagenes/PrincipalDerecha.png");
 	enemigoPentagono = al_load_bitmap("Imagenes/EnemigoPentagono.png");
 	enemigoTriangulo = al_load_bitmap("Imagenes/EnemigoTriangulo.png");
+	balaPersonajeH = al_load_bitmap("Imagenes/BalaPersonajeH.png");
+	balaPersonajeV = al_load_bitmap("Imagenes/BalaPersonajeV.png");
+	balaEnemigo = al_load_bitmap("Imagenes/BalaEnemigo.png");
 	//*******************
 
 	//Líneas para obtener las funcionalidades del teclado
@@ -294,6 +381,7 @@ int main(int argc, char **argv){
 
 	
 	bool hecho = false;
+	int disparo = -1;
 	int movimiento = 10;
 	int direccion = RIGHT;
 
@@ -305,6 +393,7 @@ int main(int argc, char **argv){
 	ALLEGRO_TIMER *primerTimer = al_create_timer(1.0 / FPS);
 	ALLEGRO_TIMER *segundoTimer = al_create_timer(1.0 / FPS1);
 	ALLEGRO_TIMER *tercerTimer = al_create_timer(1.0 / FPS2);
+	ALLEGRO_TIMER *cuartoTimer = al_create_timer(1.0 / FPS2);
 
 	ALLEGRO_EVENT_QUEUE *colaEventos = al_create_event_queue();
 
@@ -339,23 +428,39 @@ int main(int argc, char **argv){
 			switch (eventos.keyboard.keycode){
 
 			case ALLEGRO_KEY_DOWN:
-				teclas[DOWN] = true;
+				teclasDireccion[DOWN] = true;
 				direccion = DOWN;
 				break;
 
 			case ALLEGRO_KEY_UP:
-				teclas[UP] = true;
+				teclasDireccion[UP] = true;
 				direccion = UP;
 				break;
 
 			case ALLEGRO_KEY_RIGHT:
-				teclas[RIGHT] = true;
+				teclasDireccion[RIGHT] = true;
 				direccion = RIGHT;
 				break;
 
 			case ALLEGRO_KEY_LEFT:
-				teclas[LEFT] = true;
+				teclasDireccion[LEFT] = true;
 				direccion = LEFT;
+				break;
+
+			case ALLEGRO_KEY_S:
+				direccion = LEFT;
+				break;
+
+			case ALLEGRO_KEY_E:
+				direccion = UP;
+				break;
+
+			case ALLEGRO_KEY_D:
+				direccion = DOWN;
+				break;
+
+			case ALLEGRO_KEY_F:
+				direccion = RIGHT;
 				break;
 
 			case ALLEGRO_KEY_ESCAPE:
@@ -372,21 +477,22 @@ int main(int argc, char **argv){
 			switch (eventos.keyboard.keycode){
 
 			case ALLEGRO_KEY_DOWN:
-				teclas[DOWN] = false;
+				teclasDireccion[DOWN] = false;
 				break;
 
 			case ALLEGRO_KEY_UP:
-				teclas[UP] = false;
+				teclasDireccion[UP] = false;
 				break;
 
 			case ALLEGRO_KEY_RIGHT:
-				teclas[RIGHT] = false;
+				teclasDireccion[RIGHT] = false;
 				break;
 
 			case ALLEGRO_KEY_LEFT:
-				teclas[LEFT] = false;
+				teclasDireccion[LEFT] = false;
 				break;
 
+		
 			case ALLEGRO_KEY_ESCAPE:
 				hecho = true;
 				break;
@@ -398,7 +504,9 @@ int main(int argc, char **argv){
 
 		if (eventos.type == ALLEGRO_EVENT_TIMER){
 			if (eventos.timer.source == primerTimer){
+				dispararPersonaje(disparo);
 				moverPersonaje(movimiento);
+				disparo = -1;
 			}
 
 			if (eventos.timer.source == segundoTimer){
@@ -418,7 +526,17 @@ int main(int argc, char **argv){
 		dibujarEnemigoTriangulo();
 		cambiarSpriteEnemigoPentagono();
 		limpiarPantalla();
-		if (colisionPentagono()) hecho = true;
+
+		colisionPentagono();
+		
+		if (sinSalud()){
+			restarVidas();
+			restaurarSalud();
+		}
+
+		if (sinVidas()) hecho = true;
+
+		cout << personaje->salud << " " << personaje->vidas << endl;
 
 
 		
@@ -438,6 +556,9 @@ int main(int argc, char **argv){
 	al_destroy_bitmap(principalDerecha);
 	al_destroy_bitmap(enemigoPentagono);
 	al_destroy_bitmap(enemigoTriangulo);
+	al_destroy_bitmap(balaPersonajeH);
+	al_destroy_bitmap(balaPersonajeV);
+	al_destroy_bitmap(balaEnemigo);
 	al_destroy_bitmap(enemigoPentagonoBuffer);
 	
 	return 0;

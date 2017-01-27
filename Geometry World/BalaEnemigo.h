@@ -3,6 +3,7 @@ struct BalaEnemigo{
 	int x;
 	int y;
 	float danno;
+	bool activado;
 
 	BalaEnemigo(){
 
@@ -12,5 +13,6 @@ struct BalaEnemigo{
 		x = _x;
 		y = _y;
 		danno = _danno;
+		activado = false;
 	}
 };
