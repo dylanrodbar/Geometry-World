@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <iostream>
+#include <math.h>
 
 #include "PersonajePrincipal.h"
 #include "EnemigoPentagono.h"
@@ -34,8 +35,8 @@ using namespace std;
 #define dannoEnemigoTriangulo 8.5
 #define numeroEnemigosPentagono 2
 #define numeroEnemigosTriangulo 2
-#define numeroBalasPersonaje 10
-#define numeroBalasEnemigo 10
+#define numeroBalasPersonaje 5
+#define numeroBalasEnemigo 5 
 
 enum Direccion {UP, DOWN, RIGHT, LEFT};
 enum Teclas {S, E, D, F};
@@ -151,6 +152,16 @@ void dibujarEnemigoTriangulo(){
 	}
 }
 
+void dibujarBalasEnemigoTriangulo(){
+	for (int i = 0; i < numeroBalasEnemigo; i++){
+		if (balasEnemigo[i] != NULL){
+			al_set_target_bitmap(al_get_backbuffer(pantalla));
+			al_draw_bitmap(balaEnemigo, balasEnemigo[i]->x, balasEnemigo[i]->y, NULL);
+			al_flip_display();
+		}
+	}
+}
+
 //dibujarBalasPersonaje: función encargada de dibujar en pantalla las balas que irá disparando el personaje principal
 //Entradas: ninguna
 //Salidas: ninguna
@@ -162,10 +173,11 @@ void dibujarBalasPersonaje(){
 			
 			al_set_target_bitmap(al_get_backbuffer(pantalla));
 			if (balasPersonaje[i]->orientacion == UP || balasPersonaje[i]->orientacion == DOWN)
-			
+				
 				al_draw_bitmap(balaPersonajeV, balasPersonaje[i]->x, balasPersonaje[i]->y, NULL);
-			if (balasPersonaje[i]->orientacion == LEFT || balasPersonaje[i]->orientacion == RIGHT)
 			
+			if (balasPersonaje[i]->orientacion == LEFT || balasPersonaje[i]->orientacion == RIGHT)
+				
 				al_draw_bitmap(balaPersonajeH, balasPersonaje[i]->x, balasPersonaje[i]->y, NULL);
 		
 			al_flip_display();
@@ -344,6 +356,7 @@ void dispararPersonaje(int direccion){
 	}
 }
 
+
 //desactivarBalaPersonaje: función encargada de dejar un espacio libre en el array de balas
 //Entradas: posición del array que se liberará
 //Salidas: ninguna
@@ -390,7 +403,41 @@ void moverBalaPersonaje(int movimiento){
 	}
 }
 
+void crearBalaEnemigoTriangulo(int x, int y){
+	for (int i = 0; i < numeroBalasEnemigo; i++){
+		if (balasEnemigo[i] == NULL) balasEnemigo[i] = new BalaEnemigo(x, y, dannoBalaEnemigo);
+	}
+}
 
+
+
+void dispararEnemigoTriangulo(){
+	for (int i = 0; i < numeroEnemigosTriangulo; i++){
+		
+		if (enemigosTriangulo[i] != NULL){
+
+			if (abs(enemigosTriangulo[i]->x - personaje->x) == 50){
+				crearBalaEnemigoTriangulo(enemigosTriangulo[i]->x, enemigosTriangulo[i]->y);
+			}
+		
+		}
+	}
+}
+
+void desactivarBalaEnemigoTriangulo(int posicion){
+
+	balasEnemigo[posicion] = NULL;
+}
+
+
+void moverBalaEnemigoTriangulo(int movimiento){
+	for (int i = 0; i < numeroBalasEnemigo; i++){
+		if (balasEnemigo[i] != NULL){
+			if (balasEnemigo[i]->y == 450) desactivarBalaEnemigoTriangulo(i);
+			else balasEnemigo[i]->y += movimiento;
+		}
+	}
+}
 
 //colisionPentagono: función encargada de evaluar si existe alguna colisión entre algún enemigo pentágono y el personaje principal
 //Entradas: ninguna
@@ -437,6 +484,15 @@ void colisionBalaEnemigoPentagono(){
 		}
 	}
 
+}
+
+void colisionBalaEnemigoTriangulo(){
+	for (int i = 0; i < numeroBalasEnemigo; i++){
+		
+		if (balasEnemigo[i] != NULL){
+			if (balasEnemigo[i]->x == personaje->x && balasEnemigo[i]->y == personaje->y) restarSalud(balasEnemigo[i]->danno);
+		}
+	}
 }
 
 
@@ -646,6 +702,9 @@ int main(int argc, char **argv){
 				disparo = -1;
 				moverBalaPersonaje(movimiento);
 				
+				dispararEnemigoTriangulo();
+				moverBalaEnemigoTriangulo(movimiento);
+				
 			}
 			
 		}
@@ -654,12 +713,14 @@ int main(int argc, char **argv){
 		dibujarEnemigoPentagono();
 		dibujarEnemigoTriangulo();
 		dibujarBalasPersonaje();
+		dibujarBalasEnemigoTriangulo();
 
 		cambiarSpriteEnemigoPentagono();
 		limpiarPantalla();
 
 		colisionPentagono();
 		colisionBalaEnemigoPentagono();
+		colisionBalaEnemigoTriangulo();
 		
 		if (sinSalud()){
 			restarVidas();
@@ -668,7 +729,7 @@ int main(int argc, char **argv){
 
 		if (sinVidas()) hecho = true;
 
-	
+		cout << personaje->salud << " " << personaje->vidas << endl;
 
 
 
