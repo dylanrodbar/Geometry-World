@@ -45,6 +45,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>c:\allegro\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -75,6 +76,7 @@
   <ItemGroup>
     <ClInclude Include="BalaEnemigo.h" />
     <ClInclude Include="BalaPersonaje.h" />
+    <ClInclude Include="Bonus.h" />
     <ClInclude Include="EnemigoPentagono.h" />
     <ClInclude Include="EnemigoTriangulo.h" />
     <ClInclude Include="PersonajePrincipal.h" />
