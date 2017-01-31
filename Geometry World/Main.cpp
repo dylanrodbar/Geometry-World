@@ -25,6 +25,10 @@
 
 #include <allegro5/allegro_image.h>
 
+#include <allegro5/allegro_audio.h>
+#include <allegro5/allegro_acodec.h>
+
+
 using namespace std;
 
 //Define que se implementaron para este juego
@@ -87,9 +91,14 @@ ALLEGRO_COLOR transparente;
 
 ALLEGRO_BITMAP *principalBuffer;
 ALLEGRO_BITMAP *enemigoPentagonoBuffer;
+ALLEGRO_BITMAP *enemigoTrianguloBuffer;
 
 ALLEGRO_BITMAP *principalIzquierda;
 ALLEGRO_BITMAP *principalDerecha;
+ALLEGRO_BITMAP *principalAturdidoIzquierda;
+ALLEGRO_BITMAP *principalAturdidoDerecha;
+ALLEGRO_BITMAP *principalCriticoIzquierda;
+ALLEGRO_BITMAP *principalCriticoDerecha;
 ALLEGRO_BITMAP *enemigoPentagono;
 ALLEGRO_BITMAP *enemigoTriangulo;
 ALLEGRO_BITMAP *bonusSalud;
@@ -99,11 +108,23 @@ ALLEGRO_BITMAP *balaPersonajeV;
 ALLEGRO_BITMAP *balaEnemigo;
 ALLEGRO_BITMAP *ultimo;
 
+ALLEGRO_SAMPLE *musicaJuego;
+ALLEGRO_SAMPLE *disparoPersonaje;
+ALLEGRO_SAMPLE *disparoEnemigo;
+ALLEGRO_SAMPLE *colisionEnemigo;
+
+ALLEGRO_SAMPLE_INSTANCE *instanciaSonido;
+
 ALLEGRO_FONT *fuente;
 //**********************************************************
 
 //Funciones que se utilizarán para el juego
 //**********************************************************
+void reproducirMusicaJuego();
+void reproducirDisparoPersonaje();
+void reproducirDisparoEnemigo();
+void reproducirColisionEnemigo();
+
 void dibujarMenu();
 void dibujarPuntaje();
 void dibujarSalud();
@@ -136,6 +157,7 @@ bool sinSalud();
 bool sinVidas();
 
 void cambiarSpriteEnemigoPentagono();
+void cambiarSpriteEnemigoTriangulo();
 
 void generarEnemigoPentagono();
 void generarBonus();
@@ -170,6 +192,50 @@ void iniciarBalasPersonaje();
 void iniciarBalasEnemigo();
 void iniciarBonus();
 //**********************************************************
+
+//reproducirMusicaJuego: función encargada de reproducir el tema principal del juego
+//Entradas: ninguna
+//Salidas: ninguna
+//Restricciones: ninguna
+void reproducirMusicaJuego(){
+	al_play_sample(musicaJuego, 0.5, 0.0, 1.0, ALLEGRO_PLAYMODE_LOOP, NULL);
+}
+
+
+//reproducirDisparoPersonaje: función encargada de reproducir el sonido para el disparo del personaje
+//Entradas: ninguna
+//Salidas: ninguna
+//Restricciones: ninguna
+void reproducirDisparoPersonaje(){
+	instanciaSonido = al_create_sample_instance(disparoPersonaje);
+	al_set_sample_instance_playmode(instanciaSonido, ALLEGRO_PLAYMODE_ONCE);
+	al_attach_sample_instance_to_mixer(instanciaSonido, al_get_default_mixer());
+	al_play_sample_instance(instanciaSonido);
+}
+
+
+//reproducirDisparoEnemigo: función encargada de reproducir el sonido para el disparo del enemigo
+//Entradas: ninguna
+//Salidas: ninguna
+//Restricciones: ninguna
+void reproducirDisparoEnemigo(){
+	instanciaSonido = al_create_sample_instance(disparoEnemigo);
+	al_set_sample_instance_playmode(instanciaSonido, ALLEGRO_PLAYMODE_ONCE);
+	al_attach_sample_instance_to_mixer(instanciaSonido, al_get_default_mixer());
+	al_play_sample_instance(instanciaSonido);
+}
+
+
+//reproducirColisionEnemigo: función encargada de reproducir el sonido para la colisión entre el enemigo y la bala del personaje
+//Entradas: ninguna
+//Salidas: ninguna
+//Restricciones: ninguna
+void reproducirColisionEnemigo(){
+	instanciaSonido = al_create_sample_instance(colisionEnemigo);
+	al_set_sample_instance_playmode(instanciaSonido, ALLEGRO_PLAYMODE_ONCE);
+	al_attach_sample_instance_to_mixer(instanciaSonido, al_get_default_mixer());
+	al_play_sample_instance(instanciaSonido);
+}
 
 
 //dibujarMenu: función encargada de dibujar en pantalla las opciones disponibles del menu del juego
@@ -273,13 +339,39 @@ void dibujarPrincipal(int x, int y, int direccion){
 
 	switch (direccion){
 	case LEFT:
-		al_draw_bitmap(principalIzquierda, x, y, NULL);
-		ultimo = principalIzquierda;
+		if (personaje->salud > 50 && personaje->salud <= 100){
+			al_draw_bitmap(principalIzquierda, x, y, NULL);
+			ultimo = principalIzquierda;
+		}
+
+		else if (personaje->salud > 25 && personaje->salud <= 50){
+			al_draw_bitmap(principalAturdidoIzquierda, x, y, NULL);
+			ultimo = principalAturdidoIzquierda;
+		}
+
+		else if (personaje->salud > 0 && personaje->salud <= 25){
+			al_draw_bitmap(principalCriticoIzquierda, x, y, NULL);
+			ultimo = principalCriticoIzquierda;
+		}
+
 		break;
 
 	case RIGHT:
-		al_draw_bitmap(principalDerecha, x, y, NULL);
-		ultimo = principalDerecha;
+		if (personaje->salud > 50 && personaje->salud <= 100){
+			al_draw_bitmap(principalDerecha, x, y, NULL);
+			ultimo = principalDerecha;
+		}
+
+		else if (personaje->salud > 25 && personaje->salud <= 50){
+			al_draw_bitmap(principalAturdidoDerecha, x, y, NULL);
+			ultimo = principalAturdidoDerecha;
+		}
+
+		else if (personaje->salud > 0 && personaje->salud <= 25){
+			al_draw_bitmap(principalCriticoDerecha, x, y, NULL);
+			ultimo = principalCriticoDerecha;
+		}
+
 		break;
 
 	default:
@@ -317,9 +409,19 @@ void dibujarEnemigoPentagono(){
 //Restricciones: ninguna
 void dibujarEnemigoTriangulo(){
 	for (int i = 0; i < numeroEnemigosTriangulo; i++){
-		al_set_target_bitmap(al_get_backbuffer(pantalla));
-		al_draw_bitmap(enemigoTriangulo, enemigosTriangulo[i]->x, enemigosTriangulo[i]->y, NULL);
-		al_flip_display();
+		if (enemigosTriangulo[i] != NULL){
+			
+			al_set_target_bitmap(enemigoTrianguloBuffer);
+			al_clear_to_color(transparente);
+			al_draw_bitmap_region(enemigoTriangulo, enemigosTriangulo[i]->sprite * 60, 0, 55, 60, 0, 0, NULL);
+			al_set_target_bitmap(al_get_backbuffer(pantalla));
+			al_draw_bitmap(enemigoTrianguloBuffer, enemigosTriangulo[i]->x, enemigosTriangulo[i]->y, NULL);
+			al_flip_display();
+
+			//al_set_target_bitmap(al_get_backbuffer(pantalla));
+			//al_draw_bitmap(enemigoTriangulo, enemigosTriangulo[i]->x, enemigosTriangulo[i]->y, NULL);
+			//al_flip_display();
+		}
 	}
 }
 
@@ -537,6 +639,41 @@ void cambiarSpriteEnemigoPentagono(){
 }
 
 
+//cambiarSpriteEnemigoTriangulo: función encargada de sumar en uno la variable split del enemigo triángulo
+//Entradas: ninguna
+//Salidas: ninguna
+//Restricciones: si el sumarSprite es 0, se suma en uno el sprite del enemigo triángulo
+void cambiarSpriteEnemigoTriangulo(){
+	for (int i = 0; i < numeroEnemigosTriangulo; i++){
+
+		if (enemigosTriangulo[i] != NULL){
+
+			if (enemigosTriangulo[i]->sprite == 4) enemigosTriangulo[i]->sumando = false;
+			
+			if (enemigosTriangulo[i]->sprite == 0) enemigosTriangulo[i]->sumando = true;
+			
+			if (enemigosTriangulo[i]->sumando){
+				if (enemigosTriangulo[i]->sumarSprite == 0){
+					enemigosTriangulo[i]->sprite += 1;
+					enemigosTriangulo[i]->sumarSprite = 30;
+				}
+
+				else enemigosTriangulo[i]->sumarSprite -= 1;
+			}
+			
+			if (!enemigosTriangulo[i]->sumando){
+				if (enemigosTriangulo[i]->sumarSprite == 0){
+					enemigosTriangulo[i]->sprite -= 1;
+					enemigosTriangulo[i]->sumarSprite = 30;
+				}
+
+				else enemigosTriangulo[i]->sumarSprite -= 1;
+			}
+		}
+	}
+}
+
+
 //generarEnemigoPentagono: función encargada de agregar un nuevo enemigo al array de enemigos pentágono
 //Entradas: ninguna
 //Salidas: ninguna
@@ -640,6 +777,7 @@ void dispararPersonaje(int direccion){
 
 			if (balasPersonaje[i] == NULL){
 				balasPersonaje[i] = new BalaPersonaje(personaje->x, personaje->y, direccion);
+				reproducirDisparoPersonaje();
 				break;
 
 			}
@@ -659,6 +797,7 @@ void dispararEnemigoTriangulo(){
 
 			if (abs(enemigosTriangulo[i]->x - personaje->x) == 50){
 				crearBalaEnemigoTriangulo(enemigosTriangulo[i]->x, enemigosTriangulo[i]->y);
+				reproducirDisparoEnemigo();
 			}
 
 		}
@@ -841,6 +980,7 @@ void colisionBalaEnemigoPentagono(){
 					desactivarEnemigoPentagono(j);
 					desactivarBalaPersonaje(i);
 					sumarPuntaje(sumaPuntajeColision);
+					reproducirColisionEnemigo();
 				}
 			}
 		}
@@ -940,7 +1080,7 @@ void iniciarEnemigosTriangulo(){
 
 	for (int i = 0; i < numeroEnemigosTriangulo; i++){
 		x = rand() % 31 + 5;
-		enemigosTriangulo[i] = new EnemigoTriangulo(x * 10, 0, (i % 2 + 2), i + 1, dannoEnemigoTriangulo);
+		enemigosTriangulo[i] = new EnemigoTriangulo(x * 10, 0, (i % 2 + 2), i + 1, 0, dannoEnemigoTriangulo);
 	}
 
 }
@@ -981,7 +1121,7 @@ void iniciarBonus(){
 
 int main(int argc, char **argv){
 
-	
+
 
 	if (!al_init()) {
 		fprintf(stderr, "failed to initialize allegro!\n");
@@ -1010,7 +1150,7 @@ int main(int argc, char **argv){
 
 	fuente = al_load_font("Archristy.ttf", 16, NULL);
 
-	
+
 	al_init_primitives_addon();
 
 	//Línea para obtener las funcionalidades de las imágenes
@@ -1022,12 +1162,17 @@ int main(int argc, char **argv){
 	//*******************
 	principalBuffer = al_create_bitmap(30, 30);
 	enemigoPentagonoBuffer = al_create_bitmap(30, 30);
+	enemigoTrianguloBuffer = al_create_bitmap(60, 60);
 	//*******************
 
 	//Se cargan las imágenes que se van a utilizar en el juego
 	//*******************
 	principalIzquierda = al_load_bitmap("Imagenes/PrincipalIzquierda.png");
 	principalDerecha = al_load_bitmap("Imagenes/PrincipalDerecha.png");
+	principalAturdidoIzquierda = al_load_bitmap("Imagenes/PrincipalAturdidoIzquierda.png");
+	principalAturdidoDerecha = al_load_bitmap("Imagenes/PrincipalAturdidoDerecha.png");
+	principalCriticoIzquierda = al_load_bitmap("Imagenes/PrincipalCriticoIzquierda.png");
+	principalCriticoDerecha = al_load_bitmap("Imagenes/PrincipalCriticoDerecha.png");
 	enemigoPentagono = al_load_bitmap("Imagenes/EnemigoPentagono.png");
 	enemigoTriangulo = al_load_bitmap("Imagenes/EnemigoTriangulo.png");
 	balaPersonajeH = al_load_bitmap("Imagenes/BalaPersonajeH.png");
@@ -1037,6 +1182,21 @@ int main(int argc, char **argv){
 	bonusVida = al_load_bitmap("Imagenes/bonusVida.png");
 	//*******************
 
+	//Líneas para obtener las funcionalidades de los audios
+	//*******************
+	al_install_audio();
+	al_init_acodec_addon();
+	al_reserve_samples(1000);
+	//*******************
+
+	//Se cargan los audios que se van a utilizar en el juego
+	//*******************
+	musicaJuego = al_load_sample("Musica/MusicaJuego.ogg");
+	disparoPersonaje = al_load_sample("Musica/DisparoPersonaje.ogg");
+	disparoEnemigo = al_load_sample("Musica/DisparoEnemigo.ogg");
+	colisionEnemigo = al_load_sample("Musica/ColisionEnesmigo.ogg");
+	//*******************
+
 	//Líneas para obtener las funcionalidades del teclado
 	//*******************
 	al_init_primitives_addon();
@@ -1044,7 +1204,7 @@ int main(int argc, char **argv){
 	//*******************
 
 
-	
+
 	bool hecho, menu = true;
 	int disparo = -1;
 	int movimiento = 10;
@@ -1055,15 +1215,15 @@ int main(int argc, char **argv){
 
 	//*******************************************************************************
 	dibujarMenu();
-
+	reproducirMusicaJuego();
 	ALLEGRO_KEYBOARD_STATE estadoTeclado;
-	
+
 	al_get_keyboard_state(&estadoTeclado);
-	
+
 	ALLEGRO_EVENT eventoMenu;
-	
+
 	ALLEGRO_EVENT_QUEUE *colaEventoMenu = al_create_event_queue();
-	
+
 	al_register_event_source(colaEventoMenu, al_get_keyboard_event_source());
 
 	iniciarPuntajes();
@@ -1147,12 +1307,12 @@ int main(int argc, char **argv){
 	iniciarBalasEnemigo();
 	iniciarBonus();
 	//**********************************************************
-	
-	
+
+
 	while (hecho){
 
 		ALLEGRO_EVENT eventos;
-		
+
 		al_wait_for_event(colaEventos, &eventos);
 
 
@@ -1229,15 +1389,15 @@ int main(int argc, char **argv){
 				teclasDireccion[LEFT] = false;
 				break;
 
-		
+
 			case ALLEGRO_KEY_ESCAPE:
 				hecho = true;
 				break;
 			}
 
 		}
-		
-		
+
+
 
 		if (eventos.type == ALLEGRO_EVENT_TIMER){
 			if (eventos.timer.source == primerTimer){
@@ -1258,10 +1418,10 @@ int main(int argc, char **argv){
 				dispararPersonaje(disparo);
 				disparo = -1;
 				moverBalaPersonaje(movimiento);
-				
+
 				dispararEnemigoTriangulo();
 				moverBalaEnemigoTriangulo(movimiento);
-				
+
 			}
 
 			else if (eventos.timer.source == quintoTimer){
@@ -1291,21 +1451,22 @@ int main(int argc, char **argv){
 				moverEnemigoPentagono(movimiento, 3);
 				moverEnemigoTriangulo(movimiento, 3);
 			}
-			
+
 		}
-		
+
 		generarEnemigoPentagono();
 
-		
+
 
 		cambiarSpriteEnemigoPentagono();
+		cambiarSpriteEnemigoTriangulo();
 		limpiarPantalla();
 
 		colisionPentagono();
 		colisionBalaEnemigoPentagono();
 		colisionBalaEnemigoTriangulo();
 		colisionBonus();
-		
+
 		if (sinSalud()){
 			restarVidas();
 			restaurarSalud();
@@ -1315,7 +1476,7 @@ int main(int argc, char **argv){
 			hecho = false;
 			guardarPuntajes();
 		}
-		
+
 
 
 	}
@@ -1323,26 +1484,38 @@ int main(int argc, char **argv){
 
 
 	//Se liberan los elementos de allegro que se utilizaron
-	
+
 	al_destroy_font(fuente);
-	
+
 	al_destroy_display(pantalla);
 
 	al_destroy_event_queue(colaEventos);
 	al_destroy_event_queue(colaEventoMenu);
 
 
-    
+
 	al_destroy_bitmap(principalIzquierda);
 	al_destroy_bitmap(principalDerecha);
+	al_destroy_bitmap(principalAturdidoIzquierda);
+	al_destroy_bitmap(principalAturdidoDerecha);
+	al_destroy_bitmap(principalCriticoIzquierda);
+	al_destroy_bitmap(principalCriticoDerecha);
 	al_destroy_bitmap(enemigoPentagono);
 	al_destroy_bitmap(enemigoTriangulo);
 	al_destroy_bitmap(balaPersonajeH);
 	al_destroy_bitmap(balaPersonajeV);
 	al_destroy_bitmap(balaEnemigo);
 	al_destroy_bitmap(enemigoPentagonoBuffer);
+	al_destroy_bitmap(enemigoTrianguloBuffer);
 	al_destroy_bitmap(bonusSalud);
 	al_destroy_bitmap(bonusVida);
+
+	al_destroy_sample(musicaJuego);
+	al_destroy_sample(disparoPersonaje);
+	al_destroy_sample(disparoEnemigo);
+	al_destroy_sample(colisionEnemigo);
+
+	al_destroy_sample_instance(instanciaSonido);
 
 	al_destroy_timer(primerTimer);
 	al_destroy_timer(segundoTimer);
@@ -1353,7 +1526,7 @@ int main(int argc, char **argv){
 	al_destroy_timer(septimoTimer);
 	al_destroy_timer(octavoTimer);
 
-	al_destroy_font(fuente);
+	//al_destroy_font(fuente);
 
 
 
