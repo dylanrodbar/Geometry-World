@@ -417,10 +417,6 @@ void dibujarEnemigoTriangulo(){
 			al_set_target_bitmap(al_get_backbuffer(pantalla));
 			al_draw_bitmap(enemigoTrianguloBuffer, enemigosTriangulo[i]->x, enemigosTriangulo[i]->y, NULL);
 			al_flip_display();
-
-			//al_set_target_bitmap(al_get_backbuffer(pantalla));
-			//al_draw_bitmap(enemigoTriangulo, enemigosTriangulo[i]->x, enemigosTriangulo[i]->y, NULL);
-			//al_flip_display();
 		}
 	}
 }
@@ -707,7 +703,6 @@ void generarBonus(){
 			x = 33 + 0;
 			y = rand() % 6 + 7;
 			bonus[i] = new Bonus(x * 10, y * 10, i % 2, saludBonus);
-			cout << "se creo" << endl;
 			break;
 		}
 	}
