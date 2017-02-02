@@ -898,7 +898,7 @@ void moverBalaPersonaje(int movimiento){
 			}
 
 			else if (balasPersonaje[i]->orientacion == UP){
-				if (balasPersonaje[i]->y == 0) desactivarBalaPersonaje(i);
+				if (balasPersonaje[i]->y == 60) desactivarBalaPersonaje(i);
 				else balasPersonaje[i]->y -= movimiento;
 			}
 
@@ -971,7 +971,7 @@ void colisionBalaEnemigoPentagono(){
 
 			if (enemigosPentagono[j] != NULL && balasPersonaje[i] != NULL){
 
-				if (balasPersonaje[i]->x == enemigosPentagono[j]->x && balasPersonaje[i]->y == enemigosPentagono[j]->y){
+				if (balasPersonaje[i]-> x == enemigosPentagono[j]->x && balasPersonaje[i]->y == enemigosPentagono[j]->y){
 					desactivarEnemigoPentagono(j);
 					desactivarBalaPersonaje(i);
 					sumarPuntaje(sumaPuntajeColision);
